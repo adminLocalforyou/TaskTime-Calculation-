@@ -1,14 +1,21 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TaskRule } from '../types';
 import { Plus, Trash2, Check, X, Tag, Pencil } from 'lucide-react';
 
 interface RuleManagerProps {
   rules: TaskRule[];
   onUpdateRules: (rules: TaskRule[]) => void;
+  prefillKeyword?: string | null;
+  onClearPrefill?: () => void;
 }
 
-export const RuleManager: React.FC<RuleManagerProps> = ({ rules, onUpdateRules }) => {
+export const RuleManager: React.FC<RuleManagerProps> = ({ 
+  rules, 
+  onUpdateRules, 
+  prefillKeyword, 
+  onClearPrefill 
+}) => {
   const [newKeyword, setNewKeyword] = useState('');
   const [newSynonyms, setNewSynonyms] = useState('');
   const [newDuration, setNewDuration] = useState<number>(60);
@@ -19,6 +26,16 @@ export const RuleManager: React.FC<RuleManagerProps> = ({ rules, onUpdateRules }
   const [editKeyword, setEditKeyword] = useState('');
   const [editSynonyms, setEditSynonyms] = useState('');
   const [editDuration, setEditDuration] = useState<number>(60);
+
+  // Handle prefill from Dashboard
+  useEffect(() => {
+    if (prefillKeyword) {
+      setNewKeyword(prefillKeyword);
+      setIsAdding(true);
+      // Clean up prefill after setting it
+      onClearPrefill?.();
+    }
+  }, [prefillKeyword, onClearPrefill]);
 
   const addRule = () => {
     if (!newKeyword.trim()) return;
@@ -47,6 +64,7 @@ export const RuleManager: React.FC<RuleManagerProps> = ({ rules, onUpdateRules }
     setEditKeyword(rule.keyword);
     setEditSynonyms(rule.synonyms ? rule.synonyms.join(', ') : '');
     setEditDuration(rule.durationMinutes);
+    setIsAdding(false); // Close add form if open
   };
 
   const cancelEditing = () => {

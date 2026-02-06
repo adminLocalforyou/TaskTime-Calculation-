@@ -3,10 +3,11 @@ import React from 'react';
 import { MonthlyAnalysis } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { MAX_HOURS_PER_DAY } from '../constants';
-import { AlertCircle, Clock, Users, UserPlus } from 'lucide-react';
+import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus } from 'lucide-react';
 
 interface DashboardProps {
   result: MonthlyAnalysis;
+  onCreateRule?: (keyword: string) => void;
 }
 
 const isSinglePerson = (name: string): boolean => {
@@ -18,7 +19,7 @@ const isSinglePerson = (name: string): boolean => {
   return true;
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ result }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule }) => {
   const sortedSummaries = [...result.summaries].sort((a, b) => {
     const aSingle = isSinglePerson(a.owner);
     const bSingle = isSinglePerson(b.owner);
@@ -122,6 +123,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ result }) => {
           </div>
         </div>
       </div>
+
+      {result.unmatchedTasks && result.unmatchedTasks.length > 0 && (
+        <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
+          <div className="flex items-center gap-2 mb-4 text-amber-800">
+            <HelpCircle size={20} />
+            <h3 className="font-bold">Knowledge Gap Identified</h3>
+          </div>
+          <p className="text-sm text-amber-700 mb-6">These task topics don't match any of your current rules. Adding them to your Knowledge Base will improve analysis accuracy.</p>
+          <div className="flex flex-wrap gap-3">
+            {result.unmatchedTasks.slice(0, 8).map((task, idx) => (
+              <div key={idx} className="bg-white border border-amber-300 px-4 py-3 rounded-xl flex items-center justify-between gap-6 shadow-sm">
+                <div>
+                  <p className="text-xs font-bold text-slate-800 truncate max-w-[200px]">{task.name}</p>
+                  <p className="text-[10px] text-amber-600 font-medium">Found {task.count} times</p>
+                </div>
+                <button 
+                  onClick={() => onCreateRule?.(task.name)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                  title="Create Rule"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            ))}
+            {result.unmatchedTasks.length > 8 && (
+              <div className="flex items-center px-4 py-2 text-xs font-bold text-amber-600">
+                + {result.unmatchedTasks.length - 8} more topics...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">

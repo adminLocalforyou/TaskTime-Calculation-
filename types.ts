@@ -24,6 +24,11 @@ export interface OwnerSummary {
   tasks: RawTask[];
 }
 
+export interface UnmatchedTaskInfo {
+  name: string;
+  count: number;
+}
+
 export interface MonthlyAnalysis {
   monthKey: string;
   monthName: string;
@@ -31,6 +36,7 @@ export interface MonthlyAnalysis {
   totalTeamHours: number;
   overloadedCount: number;
   memberCount: number;
+  unmatchedTasks: UnmatchedTaskInfo[];
 }
 
 export interface AnalysisResult {

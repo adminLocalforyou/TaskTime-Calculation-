@@ -4,7 +4,7 @@ import { FileUp, Info, LayoutDashboard, Database, HelpCircle, AlertCircle, Trash
 import { RuleManager } from './components/RuleManager';
 import { Dashboard } from './components/Dashboard';
 import { DEFAULT_RULES, WORKING_DAYS_PER_WEEK, MAX_HOURS_PER_DAY } from './constants';
-import { TaskRule, RawTask, MonthlyAnalysis, OwnerSummary } from './types';
+import { TaskRule, RawTask, MonthlyAnalysis, OwnerSummary, UnmatchedTaskInfo } from './types';
 import { parseExcelFile } from './services/excelParser';
 
 const App: React.FC = () => {
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rules' | 'history'>('dashboard');
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [prefillRuleKeyword, setPrefillRuleKeyword] = useState<string | null>(null);
 
   // Save data whenever it changes
   useEffect(() => {
@@ -45,9 +46,17 @@ const App: React.FC = () => {
     
     Object.entries(months).forEach(([monthKey, monthTasks]) => {
       const ownerGroups: Record<string, RawTask[]> = {};
+      const unmatchedMap: Record<string, number> = {};
+
       monthTasks.forEach(t => {
+        // Group by owner
         if (!ownerGroups[t.owner]) ownerGroups[t.owner] = [];
         ownerGroups[t.owner].push(t);
+
+        // Track unmatched tasks
+        if (!t.matchedRule) {
+          unmatchedMap[t.name] = (unmatchedMap[t.name] || 0) + 1;
+        }
       });
 
       const summaries: OwnerSummary[] = Object.entries(ownerGroups).map(([owner, ownerTasks]) => {
@@ -58,6 +67,10 @@ const App: React.FC = () => {
         return { owner, totalMinutes, totalHours, avgHoursPerDay, taskCount: ownerTasks.length, tasks: ownerTasks };
       });
 
+      const unmatchedTasks: UnmatchedTaskInfo[] = Object.entries(unmatchedMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
       const [year, month] = monthKey.split('-');
       const monthName = new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -65,6 +78,7 @@ const App: React.FC = () => {
         monthKey,
         monthName,
         summaries,
+        unmatchedTasks,
         totalTeamHours: summaries.reduce((acc, curr) => acc + curr.totalHours, 0),
         overloadedCount: summaries.filter(s => s.avgHoursPerDay > MAX_HOURS_PER_DAY).length,
         memberCount: summaries.length
@@ -93,10 +107,8 @@ const App: React.FC = () => {
     setError(null);
     try {
       const newParsedTasks = await parseExcelFile(file, rules);
-      // Append new tasks to existing ones (Merge)
       setTasks(prev => [...prev, ...newParsedTasks]);
       setActiveTab('dashboard');
-      // Update selected month to the one just uploaded if it's new
       if (newParsedTasks.length > 0) {
         setSelectedMonth(newParsedTasks[0].monthKey);
       }
@@ -116,6 +128,34 @@ const App: React.FC = () => {
       localStorage.removeItem('workload_tasks');
     }
   };
+
+  const handleCreateRuleFromUnmatched = (keyword: string) => {
+    setPrefillRuleKeyword(keyword);
+    setActiveTab('rules');
+  };
+
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const updatedTasks = tasks.map(task => {
+        let matchedRule: TaskRule | undefined;
+        let calculatedDuration = 0;
+        const lowerName = task.name.toLowerCase();
+
+        for (const rule of rules) {
+          const matchesKeyword = lowerName.includes(rule.keyword.toLowerCase());
+          const matchesSynonym = rule.synonyms?.some(syn => lowerName.includes(syn.toLowerCase()));
+
+          if (matchesKeyword || matchesSynonym) {
+            matchedRule = rule;
+            calculatedDuration = rule.durationMinutes;
+            break;
+          }
+        }
+        return { ...task, matchedRule, calculatedDuration };
+      });
+      setTasks(updatedTasks);
+    }
+  }, [rules]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -181,7 +221,12 @@ const App: React.FC = () => {
             <p className="font-medium animate-pulse">Processing monthly data...</p>
           </div>
         ) : activeTab === 'rules' ? (
-          <RuleManager rules={rules} onUpdateRules={setRules} />
+          <RuleManager 
+            rules={rules} 
+            onUpdateRules={setRules} 
+            prefillKeyword={prefillRuleKeyword} 
+            onClearPrefill={() => setPrefillRuleKeyword(null)}
+          />
         ) : activeTab === 'history' ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -251,7 +296,10 @@ const App: React.FC = () => {
                 </select>
               </div>
             </div>
-            <Dashboard result={analysisByMonth[selectedMonth]} />
+            <Dashboard 
+              result={analysisByMonth[selectedMonth]} 
+              onCreateRule={handleCreateRuleFromUnmatched}
+            />
           </div>
         ) : (
           <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center max-w-2xl mx-auto shadow-sm">
