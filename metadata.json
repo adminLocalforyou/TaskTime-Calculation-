@@ -1,0 +1,5 @@
+{
+  "name": "Team Workload Analyzer",
+  "description": "An intelligent dashboard to calculate and visualize team daily work hours by mapping task keywords to estimated durations from uploaded Excel files.",
+  "requestFramePermissions": []
+}
