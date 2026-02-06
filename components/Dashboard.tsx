@@ -76,7 +76,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ result }) => {
             <AlertCircle size={24} />
           </div>
           <div>
-            <p className="text-sm text-slate-500 font-medium">Overloaded ( > 8h/day )</p>
+            {/* แก้ไขตรงนี้: ใช้ &gt; แทน > เพื่อไม่ให้ parser เข้าใจผิดว่าเป็นแท็ก HTML */}
+            <p className="text-sm text-slate-500 font-medium">Overloaded ( &gt; 8h/day )</p>
             <p className="text-2xl font-bold text-slate-800">{result.overloadedCount}</p>
           </div>
         </div>

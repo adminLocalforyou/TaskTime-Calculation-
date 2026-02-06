@@ -2,6 +2,7 @@
 export interface TaskRule {
   id: string;
   keyword: string;
+  synonyms?: string[];
   durationMinutes: number;
 }
 

@@ -15,17 +15,22 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
 
         const tasks: RawTask[] = jsonData.map((row) => {
           // Flexible header matching
-          const name = row['Name'] || row['task name'] || row['Task Name'] || row['Task'] || '';
-          const owner = row['Task owner'] || row['Task Owner'] || row['Owner'] || row['Person'] || 'Unknown';
+          const name = String(row['Name'] || row['task name'] || row['Task Name'] || row['Task'] || '');
+          const owner = String(row['Task owner'] || row['Task Owner'] || row['Owner'] || row['Person'] || 'Unknown');
           const date = row['Date'] || row['date'] || '';
 
           // Find matching rule
           let matchedRule: TaskRule | undefined;
           let calculatedDuration = 0;
 
-          // Check keywords (case-insensitive)
+          const lowerName = name.toLowerCase();
+
+          // Check primary keyword and synonyms (case-insensitive)
           for (const rule of rules) {
-            if (name.toLowerCase().includes(rule.keyword.toLowerCase())) {
+            const matchesKeyword = lowerName.includes(rule.keyword.toLowerCase());
+            const matchesSynonym = rule.synonyms?.some(syn => lowerName.includes(syn.toLowerCase()));
+
+            if (matchesKeyword || matchesSynonym) {
               matchedRule = rule;
               calculatedDuration = rule.durationMinutes;
               break;
