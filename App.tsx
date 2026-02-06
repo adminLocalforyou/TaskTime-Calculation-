@@ -122,7 +122,8 @@ const App: React.FC = () => {
   };
 
   const handleClearData = () => {
-    if (window.confirm('Delete all data? This will clear all history and current analysis.')) {
+    // ลบแค่ข้อมูล Task (History/Dashboard) แต่เก็บ Rules ไว้
+    if (window.confirm('คุณแน่ใจหรือไม่ที่จะลบข้อมูล Dashboard และ History ทั้งหมด? (Knowledge Base Rules ของคุณจะถูกเก็บไว้เหมือนเดิม)')) {
       setTasks([]);
       setSelectedMonth('');
       localStorage.removeItem('workload_tasks');
@@ -194,7 +195,7 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-2">
             {tasks.length > 0 && (
-              <button onClick={handleClearData} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Reset All">
+              <button onClick={handleClearData} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Reset History & Dashboard">
                 <Trash2 size={20} />
               </button>
             )}
