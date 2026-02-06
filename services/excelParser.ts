@@ -8,28 +8,36 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
         const tasks: RawTask[] = jsonData.map((row) => {
-          // Flexible header matching
           const name = String(row['Name'] || row['task name'] || row['Task Name'] || row['Task'] || '');
           const owner = String(row['Task owner'] || row['Task Owner'] || row['Owner'] || row['Person'] || 'Unknown');
-          const date = row['Date'] || row['date'] || '';
+          
+          // Handle Date
+          let dateObj = new Date();
+          const rawDate = row['Date'] || row['date'];
+          if (rawDate instanceof Date) {
+            dateObj = rawDate;
+          } else if (typeof rawDate === 'string' || typeof rawDate === 'number') {
+            const parsed = new Date(rawDate);
+            if (!isNaN(parsed.getTime())) dateObj = parsed;
+          }
+
+          const dateStr = dateObj.toISOString().split('T')[0];
+          const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
 
           // Find matching rule
           let matchedRule: TaskRule | undefined;
           let calculatedDuration = 0;
-
           const lowerName = name.toLowerCase();
 
-          // Check primary keyword and synonyms (case-insensitive)
           for (const rule of rules) {
             const matchesKeyword = lowerName.includes(rule.keyword.toLowerCase());
             const matchesSynonym = rule.synonyms?.some(syn => lowerName.includes(syn.toLowerCase()));
-
             if (matchesKeyword || matchesSynonym) {
               matchedRule = rule;
               calculatedDuration = rule.durationMinutes;
@@ -40,7 +48,8 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
           return {
             name,
             owner,
-            date,
+            date: dateStr,
+            monthKey,
             matchedRule,
             calculatedDuration
           };

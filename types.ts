@@ -9,7 +9,8 @@ export interface TaskRule {
 export interface RawTask {
   name: string;
   owner: string;
-  date?: string;
+  date: string; // ISO String or YYYY-MM-DD
+  monthKey: string; // Format: YYYY-MM
   matchedRule?: TaskRule;
   calculatedDuration: number;
 }
@@ -23,8 +24,16 @@ export interface OwnerSummary {
   tasks: RawTask[];
 }
 
-export interface AnalysisResult {
+export interface MonthlyAnalysis {
+  monthKey: string;
+  monthName: string;
   summaries: OwnerSummary[];
   totalTeamHours: number;
   overloadedCount: number;
+  memberCount: number;
+}
+
+export interface AnalysisResult {
+  monthlyData: Record<string, MonthlyAnalysis>;
+  allMonthKeys: string[];
 }
