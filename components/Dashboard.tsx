@@ -1,9 +1,10 @@
 
 import React from 'react';
+import * as XLSX from 'xlsx';
 import { MonthlyAnalysis } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { MAX_HOURS_PER_DAY } from '../constants';
-import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus } from 'lucide-react';
+import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download } from 'lucide-react';
 
 interface DashboardProps {
   result: MonthlyAnalysis;
@@ -34,6 +35,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule }) =>
       name: s.owner,
       hours: Number(s.avgHoursPerDay.toFixed(2)),
     }));
+
+  const handleExportUnmatched = () => {
+    if (!result.unmatchedTasks || result.unmatchedTasks.length === 0) return;
+
+    const data = result.unmatchedTasks.map(t => ({
+      'Task Name (Full)': t.name,
+      'Frequency Found': t.count,
+      'Month': result.monthName
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Knowledge Gap");
+    
+    // Auto-size columns
+    const maxNameLen = Math.max(...data.map(d => d['Task Name (Full)'].length), 20);
+    worksheet['!cols'] = [{ wch: maxNameLen + 5 }, { wch: 15 }, { wch: 20 }];
+
+    XLSX.writeFile(workbook, `Knowledge_Gap_${result.monthKey}.xlsx`);
+  };
 
   return (
     <div className="space-y-6">
@@ -126,33 +147,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule }) =>
 
       {result.unmatchedTasks && result.unmatchedTasks.length > 0 && (
         <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
-          <div className="flex items-center gap-2 mb-4 text-amber-800">
-            <HelpCircle size={20} />
-            <h3 className="font-bold">Knowledge Gap Identified</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-amber-800">
+              <HelpCircle size={20} />
+              <h3 className="font-bold">Knowledge Gap Identified</h3>
+            </div>
+            <button 
+              onClick={handleExportUnmatched}
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md shadow-amber-100"
+            >
+              <Download size={14} /> Export All ({result.unmatchedTasks.length})
+            </button>
           </div>
           <p className="text-sm text-amber-700 mb-6">These task topics don't match any of your current rules. Adding them to your Knowledge Base will improve analysis accuracy.</p>
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {result.unmatchedTasks.slice(0, 8).map((task, idx) => (
-              <div key={idx} className="bg-white border border-amber-300 px-4 py-3 rounded-xl flex items-center justify-between gap-6 shadow-sm">
-                <div>
-                  <p className="text-xs font-bold text-slate-800 truncate max-w-[200px]">{task.name}</p>
+              <div key={idx} className="bg-white border border-amber-200 p-3 rounded-xl flex items-center justify-between gap-4 shadow-sm hover:border-amber-400 transition-colors">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold text-slate-800 truncate" title={task.name}>{task.name}</p>
                   <p className="text-[10px] text-amber-600 font-medium">Found {task.count} times</p>
                 </div>
                 <button 
                   onClick={() => onCreateRule?.(task.name)}
-                  className="bg-amber-600 hover:bg-amber-700 text-white p-1.5 rounded-lg transition-colors flex items-center justify-center"
+                  className="bg-amber-500 hover:bg-amber-600 text-white p-1.5 rounded-lg transition-colors flex-shrink-0"
                   title="Create Rule"
                 >
-                  <Plus size={16} />
+                  <Plus size={14} />
                 </button>
               </div>
             ))}
-            {result.unmatchedTasks.length > 8 && (
-              <div className="flex items-center px-4 py-2 text-xs font-bold text-amber-600">
-                + {result.unmatchedTasks.length - 8} more topics...
-              </div>
-            )}
           </div>
+          {result.unmatchedTasks.length > 8 && (
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-600">+ {result.unmatchedTasks.length - 8} more topics identified...</span>
+              <button 
+                onClick={handleExportUnmatched}
+                className="text-xs font-bold text-amber-700 underline hover:text-amber-900"
+              >
+                View full list in Excel
+              </button>
+            </div>
+          )}
         </div>
       )}
 
