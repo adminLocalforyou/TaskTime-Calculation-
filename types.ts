@@ -15,11 +15,21 @@ export interface RawTask {
   calculatedDuration: number;
 }
 
+export type ProjectWeightType = 'standard' | 'ai';
+
+export interface ProjectEntry {
+  standardCount: number;
+  aiCount: number;
+}
+
 export interface OwnerSummary {
   owner: string;
   totalMinutes: number;
   totalHours: number;
-  avgHoursPerDay: number;
+  standardProjectCount: number;
+  aiProjectCount: number;
+  projectDailyImpact: number;
+  avgHoursPerDay: number; // Includes tasks + project impact
   taskCount: number;
   tasks: RawTask[];
 }
