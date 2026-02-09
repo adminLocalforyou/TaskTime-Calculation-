@@ -172,6 +172,20 @@ const App: React.FC = () => {
     event.target.value = '';
   };
 
+  const handleClearData = () => {
+    if (window.confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูล Dashboard และ History ทั้งหมด? (กฎการคำนวณ Knowledge Base จะไม่ถูกลบ)')) {
+      setTasks([]);
+      setProjectData({});
+      setSelectedMonth('');
+      setProjectId(null);
+      localStorage.removeItem('workload_tasks');
+      localStorage.removeItem('workload_projects');
+      if (window.location.search.includes('project=')) {
+        window.history.pushState({}, '', window.location.pathname);
+      }
+    }
+  };
+
   const updateProjectCounts = (monthKey: string, owner: string, standardCount: number, aiCount: number) => {
     setProjectData(prev => ({
       ...prev,
@@ -204,7 +218,7 @@ const App: React.FC = () => {
         const taskMinutes = ownerTasks.reduce((acc, curr) => acc + curr.calculatedDuration, 0);
         const taskDailyHours = (taskMinutes / 60) / WORKING_DAYS_PER_WEEK;
         const pInfo = projectData[monthKey]?.[owner] || { standardCount: 0, aiCount: 0 };
-        // Changed calculation from 3h to 8h for AI projects
+        // AI calculation is 8h
         const totalProjectHours = (pInfo.standardCount * 24) + (pInfo.aiCount * 8);
         const projectDailyImpact = totalProjectHours / WORKING_DAYS_MONTH;
 
@@ -304,6 +318,12 @@ const App: React.FC = () => {
                 <input type="file" className="hidden" accept=".json" onChange={handleImportFile} />
               </label>
             </div>
+
+            {tasks.length > 0 && (
+              <button onClick={handleClearData} className="p-2 text-slate-400 hover:text-red-600 rounded-lg transition-all" title="Clear Dashboard & History">
+                <Trash2 size={20} />
+              </button>
+            )}
 
             {(tasks.length > 0 || rules.length > 0) && (
               <button 
