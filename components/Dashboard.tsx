@@ -99,7 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
               <p className="text-xs">Ex: Massage/Restaurant tasks.</p>
             </div>
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-              <p className="font-bold text-blue-700">AI Receptionist: 3h</p>
+              <p className="font-bold text-blue-700">AI Receptionist: 8h</p>
               <p className="text-xs">Ex: AI System Setup/Maintenance.</p>
             </div>
             <p className="text-[10px] italic pt-2">* Impact is calculated by (Total Hours / 20 working days).</p>
@@ -141,7 +141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                           />
                         </div>
                         <div className="flex items-center justify-between gap-2 p-1.5 bg-blue-50/50 rounded-lg border border-blue-100">
-                          <span className="text-[9px] font-bold text-blue-400 uppercase">AI Reception (3h)</span>
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">AI Reception (8h)</span>
                           <input 
                             type="number" 
                             min="0"

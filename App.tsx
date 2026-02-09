@@ -204,7 +204,8 @@ const App: React.FC = () => {
         const taskMinutes = ownerTasks.reduce((acc, curr) => acc + curr.calculatedDuration, 0);
         const taskDailyHours = (taskMinutes / 60) / WORKING_DAYS_PER_WEEK;
         const pInfo = projectData[monthKey]?.[owner] || { standardCount: 0, aiCount: 0 };
-        const totalProjectHours = (pInfo.standardCount * 24) + (pInfo.aiCount * 3);
+        // Changed calculation from 3h to 8h for AI projects
+        const totalProjectHours = (pInfo.standardCount * 24) + (pInfo.aiCount * 8);
         const projectDailyImpact = totalProjectHours / WORKING_DAYS_MONTH;
 
         return { 
