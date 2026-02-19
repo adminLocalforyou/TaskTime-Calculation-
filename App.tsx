@@ -4,7 +4,7 @@ import { FileUp, LayoutDashboard, Database, HelpCircle, AlertCircle, Trash2, His
 import { RuleManager } from './components/RuleManager';
 import { Dashboard } from './components/Dashboard';
 import { DEFAULT_RULES, WORKING_DAYS_PER_WEEK, MAX_HOURS_PER_DAY } from './constants';
-import { TaskRule, RawTask, MonthlyAnalysis, OwnerSummary, ProjectEntry } from './types';
+import { TaskRule, RawTask, MonthlyAnalysis, OwnerSummary, ProjectEntry, CalculationMode } from './types';
 import { parseExcelFile } from './services/excelParser';
 
 const WORKING_DAYS_MONTH = 20; 
@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [prefillRuleKeyword, setPrefillRuleKeyword] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [calcMode, setCalcMode] = useState<CalculationMode>('month');
 
   // 1. Initial Load
   useEffect(() => {
@@ -229,12 +230,13 @@ const App: React.FC = () => {
       });
 
       const summaries: OwnerSummary[] = Object.entries(ownerGroups).map(([owner, ownerTasks]) => {
+        const divisor = calcMode === 'day' ? 1 : calcMode === 'week' ? WORKING_DAYS_PER_WEEK : WORKING_DAYS_MONTH;
         const taskMinutes = ownerTasks.reduce((acc, curr) => acc + curr.calculatedDuration, 0);
-        const taskDailyHours = (taskMinutes / 60) / WORKING_DAYS_PER_WEEK;
+        const taskDailyHours = (taskMinutes / 60) / divisor;
         const pInfo = projectData[monthKey]?.[owner] || { standardCount: 0, aiCount: 0 };
         // AI calculation is 8h
         const totalProjectHours = (pInfo.standardCount * 24) + (pInfo.aiCount * 8);
-        const projectDailyImpact = totalProjectHours / WORKING_DAYS_MONTH;
+        const projectDailyImpact = totalProjectHours / divisor;
 
         return { 
           owner, 
@@ -264,7 +266,7 @@ const App: React.FC = () => {
       };
     });
     return result;
-  }, [tasks, projectData]);
+  }, [tasks, projectData, calcMode]);
 
   const allMonthKeys = useMemo(() => Object.keys(analysisByMonth).sort((a, b) => b.localeCompare(a)), [analysisByMonth]);
 
@@ -453,6 +455,8 @@ const App: React.FC = () => {
               onCreateRule={(k) => { setPrefillRuleKeyword(k); setActiveTab('rules'); }}
               onUpdateProject={(owner, standard, ai) => { updateProjectCounts(selectedMonth, owner, standard, ai); setProjectId(null); }}
               onUpdateTaskRule={handleUpdateTaskRule}
+              calcMode={calcMode}
+              onSetCalcMode={setCalcMode}
             />
           </div>
         ) : (

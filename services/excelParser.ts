@@ -70,8 +70,10 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
               calculatedDuration = matchedRule.durationMinutes;
               possibleRules = matches;
               
-              // Mark as ambiguous if there are multiple matches with the same longest keyword length
-              if (matches.length > 1 && matches[0].keyword.length === matches[1].keyword.length) {
+              // Mark as ambiguous if there are multiple matches with different durations
+              // This allows users to manually pick the correct one if a long project name overrides a specific task keyword
+              const uniqueDurations = new Set(matches.map(m => m.durationMinutes));
+              if (uniqueDurations.size > 1) {
                 isAmbiguous = true;
               }
             }

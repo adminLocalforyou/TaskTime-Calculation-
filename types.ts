@@ -1,4 +1,6 @@
 
+export type CalculationMode = 'day' | 'week' | 'month';
+
 export interface TaskRule {
   id: string;
   keyword: string;

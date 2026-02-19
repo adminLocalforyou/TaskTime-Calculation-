@@ -1,16 +1,18 @@
 
 import React from 'react';
 import * as XLSX from 'xlsx';
-import { MonthlyAnalysis } from '../types';
+import { MonthlyAnalysis, CalculationMode } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { MAX_HOURS_PER_DAY } from '../constants';
-import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefcase, Database } from 'lucide-react';
+import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefcase, Database, Calendar } from 'lucide-react';
 
 interface DashboardProps {
   result: MonthlyAnalysis;
   onCreateRule?: (keyword: string) => void;
   onUpdateProject?: (owner: string, standardCount: number, aiCount: number) => void;
   onUpdateTaskRule?: (taskName: string, rule: any) => void;
+  calcMode: CalculationMode;
+  onSetCalcMode: (mode: CalculationMode) => void;
 }
 
 const isSinglePerson = (name: string): boolean => {
@@ -22,7 +24,7 @@ const isSinglePerson = (name: string): boolean => {
   return true;
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUpdateProject, onUpdateTaskRule }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUpdateProject, onUpdateTaskRule, calcMode, onSetCalcMode }) => {
   const sortedSummaries = [...result.summaries].sort((a, b) => b.avgHoursPerDay - a.avgHoursPerDay);
 
   const chartData = sortedSummaries
@@ -30,7 +32,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
     .map(s => ({
       name: s.owner,
       hours: Number(s.avgHoursPerDay.toFixed(2)),
-      taskHours: Number(((s.totalMinutes / 60) / 5).toFixed(2)),
+      taskHours: Number(s.totalHours.toFixed(2)),
       projectHours: Number(s.projectDailyImpact.toFixed(2)),
     }));
 
@@ -45,6 +47,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-2 text-slate-600">
+          <Calendar size={18} />
+          <span className="text-sm font-bold uppercase tracking-wider">Calculation Base</span>
+        </div>
+        <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+          <button 
+            onClick={() => onSetCalcMode('day')}
+            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-black transition-all ${calcMode === 'day' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            1 DAY
+          </button>
+          <button 
+            onClick={() => onSetCalcMode('week')}
+            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-black transition-all ${calcMode === 'week' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            1 WEEK (5d)
+          </button>
+          <button 
+            onClick={() => onSetCalcMode('month')}
+            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-black transition-all ${calcMode === 'month' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            1 MONTH (20d)
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
           <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><Users size={20} /></div>
@@ -123,6 +152,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
               <tr>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Team Member</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Tasks</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Total Task Hrs</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Projects / Month</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Combined Avg (Hrs/Day)</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Status</th>
@@ -142,6 +172,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                     <td className="px-6 py-5 text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
                         {summary.taskCount}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      <span className="text-sm font-bold text-slate-700">
+                        {summary.totalHours.toFixed(1)} <span className="text-[10px] opacity-40">hrs</span>
                       </span>
                     </td>
                     <td className="px-6 py-5">
