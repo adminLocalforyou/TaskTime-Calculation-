@@ -13,6 +13,8 @@ export interface RawTask {
   monthKey: string; // Format: YYYY-MM
   matchedRule?: TaskRule;
   calculatedDuration: number;
+  possibleRules?: TaskRule[];
+  isAmbiguous?: boolean;
 }
 
 export type ProjectWeightType = 'standard' | 'ai';
@@ -47,6 +49,7 @@ export interface MonthlyAnalysis {
   overloadedCount: number;
   memberCount: number;
   unmatchedTasks: UnmatchedTaskInfo[];
+  ambiguousTasks: RawTask[];
 }
 
 export interface AnalysisResult {

@@ -33,15 +33,47 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
           // Find matching rule
           let matchedRule: TaskRule | undefined;
           let calculatedDuration = 0;
-          const lowerName = name.toLowerCase();
+          let possibleRules: TaskRule[] = [];
+          let isAmbiguous = false;
+          const lowerName = name.toLowerCase().trim();
 
-          for (const rule of rules) {
-            const matchesKeyword = lowerName.includes(rule.keyword.toLowerCase());
-            const matchesSynonym = rule.synonyms?.some(syn => lowerName.includes(syn.toLowerCase()));
-            if (matchesKeyword || matchesSynonym) {
-              matchedRule = rule;
-              calculatedDuration = rule.durationMinutes;
-              break;
+          // 1. Check for exact match first (highest priority)
+          const exactMatch = rules.find(r => r.keyword.toLowerCase().trim() === lowerName);
+          
+          if (exactMatch) {
+            matchedRule = exactMatch;
+            calculatedDuration = exactMatch.durationMinutes;
+            possibleRules = [exactMatch];
+          } else {
+            // 2. Find all partial matches
+            const matches = rules.filter(rule => {
+              const kw = rule.keyword.toLowerCase().trim();
+              const matchesKeyword = kw.length > 0 && lowerName.includes(kw);
+              const matchesSynonym = rule.synonyms?.some(syn => {
+                const s = syn.toLowerCase().trim();
+                return s.length > 0 && lowerName.includes(s);
+              });
+              return matchesKeyword || matchesSynonym;
+            });
+
+            if (matches.length > 0) {
+              // Sort by keyword length descending (longer keywords are more specific)
+              // If lengths are equal, sort by duration descending as a tie-breaker
+              matches.sort((a, b) => {
+                const lenA = a.keyword.length;
+                const lenB = b.keyword.length;
+                if (lenB !== lenA) return lenB - lenA;
+                return b.durationMinutes - a.durationMinutes;
+              });
+
+              matchedRule = matches[0];
+              calculatedDuration = matchedRule.durationMinutes;
+              possibleRules = matches;
+              
+              // Mark as ambiguous if there are multiple matches with the same longest keyword length
+              if (matches.length > 1 && matches[0].keyword.length === matches[1].keyword.length) {
+                isAmbiguous = true;
+              }
             }
           }
 
@@ -51,7 +83,9 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
             date: dateStr,
             monthKey,
             matchedRule,
-            calculatedDuration
+            calculatedDuration,
+            possibleRules: possibleRules.length > 1 ? possibleRules : undefined,
+            isAmbiguous
           };
         });
 

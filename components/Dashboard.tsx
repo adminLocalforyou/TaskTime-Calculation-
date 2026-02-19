@@ -4,12 +4,13 @@ import * as XLSX from 'xlsx';
 import { MonthlyAnalysis } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { MAX_HOURS_PER_DAY } from '../constants';
-import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefcase } from 'lucide-react';
+import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefcase, Database } from 'lucide-react';
 
 interface DashboardProps {
   result: MonthlyAnalysis;
   onCreateRule?: (keyword: string) => void;
   onUpdateProject?: (owner: string, standardCount: number, aiCount: number) => void;
+  onUpdateTaskRule?: (taskName: string, rule: any) => void;
 }
 
 const isSinglePerson = (name: string): boolean => {
@@ -21,7 +22,7 @@ const isSinglePerson = (name: string): boolean => {
   return true;
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUpdateProject }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUpdateProject, onUpdateTaskRule }) => {
   const sortedSummaries = [...result.summaries].sort((a, b) => b.avgHoursPerDay - a.avgHoursPerDay);
 
   const chartData = sortedSummaries
@@ -54,6 +55,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
           <div><p className="text-[10px] text-slate-400 font-bold uppercase">Task Hours</p><p className="text-xl font-bold text-slate-800">{result.totalTeamHours.toFixed(0)}</p></div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl"><Database size={20} /></div>
+          <div><p className="text-[10px] text-slate-400 font-bold uppercase">Knowledge Base</p><p className="text-xl font-bold text-slate-800">{result.summaries[0]?.tasks[0]?.matchedRule ? 'Active' : 'Rules Active'}</p></div>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
           <div className={`p-3 rounded-xl ${result.overloadedCount > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}><AlertCircle size={20} /></div>
           <div><p className="text-[10px] text-slate-400 font-bold uppercase">Overloaded</p><p className="text-xl font-bold text-slate-800">{result.overloadedCount}</p></div>
         </div>
@@ -83,7 +88,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                 <ReferenceLine y={MAX_HOURS_PER_DAY} stroke="#fca5a5" strokeDasharray="3 3" />
                 <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={40}>
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.hours > MAX_HOURS_PER_DAY ? '#ef4444' : '#6366f1'} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.hours > MAX_HOURS_PER_DAY ? '#ef4444' : '#6366f1'} 
+                      fillOpacity={0.9}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -119,60 +128,74 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {sortedSummaries.map((summary) => {
                 const isOver = summary.avgHoursPerDay > MAX_HOURS_PER_DAY;
                 return (
-                  <tr key={summary.owner} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className={`font-bold ${isOver ? 'text-red-600' : 'text-slate-700'}`}>{summary.owner}</span>
+                   <tr key={summary.owner} className="hover:bg-slate-50/80 transition-all group">
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className={`font-bold text-sm ${isOver ? 'text-red-600' : 'text-slate-800'}`}>{summary.owner}</span>
+                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Team Member</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-center text-slate-500 font-medium">{summary.taskCount}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-2 max-w-[200px] mx-auto">
-                        <div className="flex items-center justify-between gap-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">Massage/Rest (24h)</span>
-                          <input 
-                            type="number" 
-                            min="0"
-                            value={summary.standardProjectCount}
-                            onChange={(e) => onUpdateProject?.(summary.owner, parseInt(e.target.value) || 0, summary.aiProjectCount)}
-                            className="w-10 px-1 py-0.5 border border-slate-200 rounded text-center text-[10px] font-bold focus:ring-1 focus:ring-indigo-500 outline-none"
-                          />
+                    <td className="px-6 py-5 text-center">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                        {summary.taskCount}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-2 max-w-[220px] mx-auto">
+                        <div className="flex items-center justify-between gap-3 p-2 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-white transition-colors">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Standard (24h)</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="number" 
+                              min="0"
+                              value={summary.standardProjectCount}
+                              onChange={(e) => onUpdateProject?.(summary.owner, parseInt(e.target.value) || 0, summary.aiProjectCount)}
+                              className="w-12 px-2 py-1 border border-slate-200 rounded-lg text-center text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between gap-2 p-1.5 bg-blue-50/50 rounded-lg border border-blue-100">
-                          <span className="text-[9px] font-bold text-blue-400 uppercase">AI Reception (8h)</span>
-                          <input 
-                            type="number" 
-                            min="0"
-                            value={summary.aiProjectCount}
-                            onChange={(e) => onUpdateProject?.(summary.owner, summary.standardProjectCount, parseInt(e.target.value) || 0)}
-                            className="w-10 px-1 py-0.5 border border-blue-200 rounded text-center text-[10px] font-bold focus:ring-1 focus:ring-blue-500 outline-none"
-                          />
+                        <div className="flex items-center justify-between gap-3 p-2 bg-blue-50/30 rounded-xl border border-blue-100 group-hover:bg-white transition-colors">
+                          <span className="text-[9px] font-bold text-blue-400 uppercase">AI (8h)</span>
+                          <div className="flex items-center gap-1">
+                            <input 
+                              type="number" 
+                              min="0"
+                              value={summary.aiProjectCount}
+                              onChange={(e) => onUpdateProject?.(summary.owner, summary.standardProjectCount, parseInt(e.target.value) || 0)}
+                              className="w-12 px-2 py-1 border border-blue-200 rounded-lg text-center text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            />
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex flex-col">
-                        <span className={`text-sm font-black ${isOver ? 'text-red-600' : 'text-indigo-600'}`}>
-                          {summary.avgHoursPerDay.toFixed(1)} <span className="text-[10px] opacity-50">h/d</span>
-                        </span>
+                    <td className="px-6 py-5 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className={`text-lg font-black tracking-tight ${isOver ? 'text-red-600' : 'text-indigo-600'}`}>
+                          {summary.avgHoursPerDay.toFixed(1)} <span className="text-[10px] font-bold opacity-40 uppercase">hrs/day</span>
+                        </div>
                         {summary.projectDailyImpact > 0 && (
-                          <span className="text-[9px] text-slate-400 font-medium">
-                            (Incl. +{summary.projectDailyImpact.toFixed(1)}h project load)
-                          </span>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Briefcase size={10} className="text-slate-300" />
+                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">
+                              +{summary.projectDailyImpact.toFixed(1)}h project
+                            </span>
+                          </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-5 text-right">
                       {isOver ? (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 text-red-600 text-[10px] font-bold rounded-full border border-red-100 uppercase">
-                          <AlertCircle size={10} /> Overloaded
-                        </span>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black rounded-full border border-red-100 uppercase tracking-wider shadow-sm">
+                          <AlertCircle size={12} /> Overloaded
+                        </div>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-600 text-[10px] font-bold rounded-full border border-green-100 uppercase">
+                        <div className="inline-flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full border border-emerald-100 uppercase tracking-wider shadow-sm">
                           Optimal
-                        </span>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -182,6 +205,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
           </table>
         </div>
       </div>
+
+      {result.ambiguousTasks && result.ambiguousTasks.length > 0 && (
+        <div className="bg-indigo-50 rounded-2xl border border-indigo-200 p-6">
+          <div className="flex items-center gap-2 text-indigo-800 mb-4">
+            <AlertCircle size={20} />
+            <h3 className="font-bold">Ambiguous Matches Detected</h3>
+          </div>
+          <p className="text-sm text-indigo-600 mb-4">Multiple rules matched these tasks. We picked the most specific one (longest keyword), but you can verify below.</p>
+          <div className="space-y-3">
+            {result.ambiguousTasks.map((task, idx) => (
+              <div key={idx} className="bg-white border border-indigo-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-indigo-400 transition-all">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-400 uppercase mb-1">Task Name</p>
+                  <p className="text-sm font-bold text-slate-800 truncate">{task.name}</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Currently matched to: <span className="text-indigo-600 font-bold">{task.matchedRule?.keyword}</span> ({task.calculatedDuration}m)</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {task.possibleRules?.map(rule => (
+                    <button 
+                      key={rule.id}
+                      onClick={() => onUpdateTaskRule?.(task.name, rule)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${task.matchedRule?.id === rule.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'}`}
+                    >
+                      {rule.keyword} ({rule.durationMinutes}m)
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {result.unmatchedTasks && result.unmatchedTasks.length > 0 && (
         <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">

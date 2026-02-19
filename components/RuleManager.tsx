@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { TaskRule } from '../types';
-import { Plus, Trash2, Check, X, Tag, Pencil, Search } from 'lucide-react';
+import { Plus, Trash2, Check, X, Tag, Pencil, Search, Download, Upload, Database } from 'lucide-react';
 
 interface RuleManagerProps {
   rules: TaskRule[];
@@ -21,6 +21,46 @@ export const RuleManager: React.FC<RuleManagerProps> = ({
   const [newSynonyms, setNewSynonyms] = useState('');
   const [newDuration, setNewDuration] = useState<number>(60);
   const [isAdding, setIsAdding] = useState(false);
+
+  const handleExportRules = () => {
+    const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `workload-rules-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportRules = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedRules = JSON.parse(e.target?.result as string);
+        if (Array.isArray(importedRules)) {
+          if (window.confirm('Do you want to MERGE these rules with existing ones? (Cancel to REPLACE all existing rules)')) {
+            const existingKeywords = new Set(rules.map(r => r.keyword.toLowerCase()));
+            const newRules = [...rules];
+            importedRules.forEach(r => {
+              if (!existingKeywords.has(r.keyword.toLowerCase())) {
+                newRules.push({ ...r, id: Math.random().toString(36).substr(2, 9) });
+              }
+            });
+            onUpdateRules(newRules);
+          } else {
+            onUpdateRules(importedRules);
+          }
+          alert("Rules imported successfully!");
+        }
+      } catch (err) {
+        alert("Invalid rules file.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
 
   // State for editing existing rules
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -120,6 +160,20 @@ export const RuleManager: React.FC<RuleManagerProps> = ({
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button 
+              onClick={handleExportRules}
+              className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg transition-all"
+              title="Export Knowledge Base (.json)"
+            >
+              <Download size={18} />
+            </button>
+            <label className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg cursor-pointer transition-all" title="Import Knowledge Base (.json)">
+              <Upload size={18} />
+              <input type="file" className="hidden" accept=".json" onChange={handleImportRules} />
+            </label>
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 

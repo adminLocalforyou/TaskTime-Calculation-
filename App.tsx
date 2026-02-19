@@ -43,7 +43,8 @@ const App: React.FC = () => {
             ? raw.map((t: any[]) => ({
                 name: t[0], owner: t[1], date: t[2], monthKey: t[3], 
                 calculatedDuration: t[5] || 0,
-                matchedRule: rulesLookup.find(r => r.keyword === t[4])
+                matchedRule: rulesLookup.find(r => r.keyword === t[4]),
+                isAmbiguous: t[6] || false
               }))
             : raw.map((t: any) => ({
                 ...t,
@@ -64,7 +65,7 @@ const App: React.FC = () => {
     if (!projectId) {
       localStorage.setItem('workload_rules', JSON.stringify(rules));
       const compactTasks = tasks.map(t => [
-        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration
+        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false
       ]);
       localStorage.setItem('workload_tasks', JSON.stringify(compactTasks));
       localStorage.setItem('workload_projects', JSON.stringify(projectData));
@@ -93,7 +94,8 @@ const App: React.FC = () => {
     const hydratedTasks = (data.t || []).map((t: any[]) => ({
       name: t[0], owner: t[1], date: t[2], monthKey: t[3], 
       calculatedDuration: t[5] || 0,
-      matchedRule: loadedRules.find((r: TaskRule) => r.keyword === t[4])
+      matchedRule: loadedRules.find((r: TaskRule) => r.keyword === t[4]),
+      isAmbiguous: t[6] || false
     }));
     setRules(loadedRules);
     setTasks(hydratedTasks);
@@ -108,7 +110,7 @@ const App: React.FC = () => {
     setError(null);
     try {
       const compactTasks = tasks.map(t => [
-        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration
+        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false
       ]);
       const payload = { r: rules, t: compactTasks, p: projectData, u: new Date().toISOString() };
       
@@ -196,6 +198,16 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleUpdateTaskRule = (taskName: string, rule: TaskRule) => {
+    setTasks(prev => prev.map(t => {
+      if (t.name === taskName) {
+        return { ...t, matchedRule: rule, calculatedDuration: rule.durationMinutes, isAmbiguous: false };
+      }
+      return t;
+    }));
+    setProjectId(null);
+  };
+
   const analysisByMonth = useMemo(() => {
     const months: Record<string, RawTask[]> = {};
     tasks.forEach(task => {
@@ -207,11 +219,13 @@ const App: React.FC = () => {
     Object.entries(months).forEach(([monthKey, monthTasks]) => {
       const ownerGroups: Record<string, RawTask[]> = {};
       const unmatchedMap: Record<string, number> = {};
+      const ambiguousMap: Record<string, RawTask> = {};
 
       monthTasks.forEach(t => {
         if (!ownerGroups[t.owner]) ownerGroups[t.owner] = [];
         ownerGroups[t.owner].push(t);
         if (!t.matchedRule) unmatchedMap[t.name] = (unmatchedMap[t.name] || 0) + 1;
+        if (t.isAmbiguous && !ambiguousMap[t.name]) ambiguousMap[t.name] = t;
       });
 
       const summaries: OwnerSummary[] = Object.entries(ownerGroups).map(([owner, ownerTasks]) => {
@@ -243,6 +257,7 @@ const App: React.FC = () => {
         monthName,
         summaries,
         unmatchedTasks: Object.entries(unmatchedMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+        ambiguousTasks: Object.values(ambiguousMap),
         totalTeamHours: summaries.reduce((acc, curr) => acc + curr.totalHours, 0),
         overloadedCount: summaries.filter(s => s.avgHoursPerDay > MAX_HOURS_PER_DAY).length,
         memberCount: summaries.length
@@ -437,6 +452,7 @@ const App: React.FC = () => {
               result={analysisByMonth[selectedMonth]} 
               onCreateRule={(k) => { setPrefillRuleKeyword(k); setActiveTab('rules'); }}
               onUpdateProject={(owner, standard, ai) => { updateProjectCounts(selectedMonth, owner, standard, ai); setProjectId(null); }}
+              onUpdateTaskRule={handleUpdateTaskRule}
             />
           </div>
         ) : (
