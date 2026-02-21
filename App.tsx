@@ -200,12 +200,30 @@ const App: React.FC = () => {
   };
 
   const handleUpdateTaskRule = (taskName: string, rule: TaskRule) => {
+    // 1. Update current tasks in memory
     setTasks(prev => prev.map(t => {
       if (t.name === taskName) {
         return { ...t, matchedRule: rule, calculatedDuration: rule.durationMinutes, isAmbiguous: false };
       }
       return t;
     }));
+
+    // 2. "Learn" this selection by creating a specific rule for this exact task name
+    setRules(prev => {
+      const lowerTaskName = taskName.toLowerCase().trim();
+      // Avoid duplicates if we already learned this or have an exact match
+      const exists = prev.some(r => r.keyword.toLowerCase().trim() === lowerTaskName);
+      if (exists) return prev;
+
+      const learnedRule: TaskRule = {
+        id: `learned-${Math.random().toString(36).substr(2, 9)}`,
+        keyword: taskName.trim(),
+        durationMinutes: rule.durationMinutes,
+        isLearned: true
+      };
+      return [...prev, learnedRule];
+    });
+
     setProjectId(null);
   };
 

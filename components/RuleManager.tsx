@@ -311,7 +311,12 @@ export const RuleManager: React.FC<RuleManagerProps> = ({
                 <>
                   <div className="flex justify-between items-start mb-3">
                     <div className="min-w-0 pr-6">
-                      <h3 className="text-lg font-bold text-slate-800 truncate">{rule.keyword}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-800 truncate">{rule.keyword}</h3>
+                        {rule.isLearned && (
+                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[8px] font-black rounded uppercase tracking-tighter flex-shrink-0">Learned</span>
+                        )}
+                      </div>
                       <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full inline-block mt-1">{rule.durationMinutes} min</span>
                     </div>
                     <div className="flex items-center gap-1">

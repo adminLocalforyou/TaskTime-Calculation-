@@ -6,6 +6,7 @@ export interface TaskRule {
   keyword: string;
   synonyms?: string[];
   durationMinutes: number;
+  isLearned?: boolean;
 }
 
 export interface RawTask {
