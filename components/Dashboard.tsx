@@ -247,14 +247,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
             <AlertCircle size={20} />
             <h3 className="font-bold">Ambiguous Matches Detected</h3>
           </div>
-          <p className="text-sm text-indigo-600 mb-4">Multiple rules matched these tasks. We picked the most specific one (longest keyword), but you can verify below.</p>
+          <p className="text-sm text-indigo-600 mb-4">Multiple rules matched these tasks. Please select the correct one to ensure accurate workload calculation. Your choice will be "learned" for future uploads.</p>
           <div className="space-y-3">
             {result.ambiguousTasks.map((task, idx) => (
               <div key={idx} className="bg-white border border-indigo-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-indigo-400 transition-all">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-slate-400 uppercase mb-1">Task Name</p>
                   <p className="text-sm font-bold text-slate-800 truncate">{task.name}</p>
-                  <p className="text-[10px] text-slate-500 mt-1">Currently matched to: <span className="text-indigo-600 font-bold">{task.matchedRule?.keyword}</span> ({task.calculatedDuration}m)</p>
+                  <p className="text-[10px] mt-1">
+                    {task.matchedRule ? (
+                      <span className="text-slate-500">Currently matched to: <span className="text-indigo-600 font-bold">{task.matchedRule.keyword}</span> ({task.calculatedDuration}m)</span>
+                    ) : (
+                      <span className="text-amber-600 font-bold flex items-center gap-1">
+                        <AlertCircle size={10} /> Action Required: Please select the correct rule below
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {task.possibleRules?.map(rule => (

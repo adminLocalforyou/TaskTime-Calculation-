@@ -45,11 +45,13 @@ const App: React.FC = () => {
                 name: t[0], owner: t[1], date: t[2], monthKey: t[3], 
                 calculatedDuration: t[5] || 0,
                 matchedRule: rulesLookup.find(r => r.keyword === t[4]),
-                isAmbiguous: t[6] || false
+                isAmbiguous: t[6] || false,
+                possibleRules: t[7] ? t[7].map((id: string) => rulesLookup.find(r => r.id === id)).filter(Boolean) : undefined
               }))
             : raw.map((t: any) => ({
                 ...t,
-                matchedRule: rulesLookup.find(r => r.keyword === (t.ruleKeyword || t.matchedRule?.keyword))
+                matchedRule: rulesLookup.find(r => r.keyword === (t.ruleKeyword || t.matchedRule?.keyword)),
+                possibleRules: t.possibleRules?.map((id: string) => rulesLookup.find(r => r.id === id)).filter(Boolean)
               }));
           setTasks(hydrated);
         } catch (e) {
@@ -66,7 +68,8 @@ const App: React.FC = () => {
     if (!projectId) {
       localStorage.setItem('workload_rules', JSON.stringify(rules));
       const compactTasks = tasks.map(t => [
-        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false
+        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false,
+        t.possibleRules?.map(r => r.id) || []
       ]);
       localStorage.setItem('workload_tasks', JSON.stringify(compactTasks));
       localStorage.setItem('workload_projects', JSON.stringify(projectData));
@@ -96,7 +99,8 @@ const App: React.FC = () => {
       name: t[0], owner: t[1], date: t[2], monthKey: t[3], 
       calculatedDuration: t[5] || 0,
       matchedRule: loadedRules.find((r: TaskRule) => r.keyword === t[4]),
-      isAmbiguous: t[6] || false
+      isAmbiguous: t[6] || false,
+      possibleRules: t[7] ? t[7].map((id: string) => loadedRules.find((r: TaskRule) => r.id === id)).filter(Boolean) : undefined
     }));
     setRules(loadedRules);
     setTasks(hydratedTasks);
@@ -111,7 +115,8 @@ const App: React.FC = () => {
     setError(null);
     try {
       const compactTasks = tasks.map(t => [
-        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false
+        t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false,
+        t.possibleRules?.map(r => r.id) || []
       ]);
       const payload = { r: rules, t: compactTasks, p: projectData, u: new Date().toISOString() };
       
@@ -145,7 +150,8 @@ const App: React.FC = () => {
 
   const handleExportFile = () => {
     const compactTasks = tasks.map(t => [
-      t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration
+      t.name, t.owner, t.date, t.monthKey, t.matchedRule?.keyword || '', t.calculatedDuration, t.isAmbiguous || false,
+      t.possibleRules?.map(r => r.id) || []
     ]);
     const payload = { r: rules, t: compactTasks, p: projectData, u: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });

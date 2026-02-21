@@ -66,15 +66,19 @@ export const parseExcelFile = async (file: File, rules: TaskRule[]): Promise<Raw
                 return b.durationMinutes - a.durationMinutes;
               });
 
-              matchedRule = matches[0];
-              calculatedDuration = matchedRule.durationMinutes;
               possibleRules = matches;
               
               // Mark as ambiguous if there are multiple matches with different durations
-              // This allows users to manually pick the correct one if a long project name overrides a specific task keyword
               const uniqueDurations = new Set(matches.map(m => m.durationMinutes));
               if (uniqueDurations.size > 1) {
                 isAmbiguous = true;
+                // If ambiguous, don't pick a default rule. Let the user decide.
+                matchedRule = undefined;
+                calculatedDuration = 0;
+              } else {
+                // Not ambiguous (or all matches have same duration), pick the best one
+                matchedRule = matches[0];
+                calculatedDuration = matchedRule.durationMinutes;
               }
             }
           }
