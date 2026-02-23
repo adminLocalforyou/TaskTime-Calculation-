@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import { MonthlyAnalysis, CalculationMode } from '../types';
+import { MonthlyAnalysis, CalculationMode, OwnerSummary } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { MAX_HOURS_PER_DAY } from '../constants';
-import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefcase, Database, Calendar } from 'lucide-react';
+import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefcase, Database, Calendar, X, Search } from 'lucide-react';
 
 interface DashboardProps {
   result: MonthlyAnalysis;
@@ -25,6 +25,9 @@ const isSinglePerson = (name: string): boolean => {
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUpdateProject, onUpdateTaskRule, calcMode, onSetCalcMode }) => {
+  const [selectedOwnerTasks, setSelectedOwnerTasks] = useState<OwnerSummary | null>(null);
+  const [taskSearch, setTaskSearch] = useState('');
+  
   const sortedSummaries = [...result.summaries].sort((a, b) => b.avgHoursPerDay - a.avgHoursPerDay);
 
   const chartData = sortedSummaries
@@ -171,9 +174,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                      <button 
+                        onClick={() => setSelectedOwnerTasks(summary)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all shadow-sm active:scale-95"
+                        title="Click to view task list"
+                      >
                         {summary.taskCount}
-                      </span>
+                      </button>
                     </td>
                     <td className="px-6 py-5 text-center">
                       <span className="text-sm font-bold text-slate-700">
@@ -308,6 +315,81 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                 <button onClick={() => onCreateRule?.(task.name)} className="bg-amber-500 hover:bg-amber-600 text-white p-1.5 rounded-lg flex-shrink-0"><Plus size={14} /></button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Task List Modal */}
+      {selectedOwnerTasks && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">{selectedOwnerTasks.owner}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  {selectedOwnerTasks.taskCount} Tasks for {result.monthName}
+                </p>
+              </div>
+              <button 
+                onClick={() => { setSelectedOwnerTasks(null); setTaskSearch(''); }}
+                className="p-2 bg-white text-slate-400 border border-slate-200 rounded-xl hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-4 bg-white border-b border-slate-50">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input 
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={taskSearch}
+                  onChange={(e) => setTaskSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {selectedOwnerTasks.tasks
+                .filter(t => t.name.toLowerCase().includes(taskSearch.toLowerCase()))
+                .map((task, idx) => (
+                <div key={idx} className="p-3 hover:bg-slate-50 rounded-xl transition-colors flex items-center justify-between gap-4 border border-transparent hover:border-slate-100">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-700 truncate">{task.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">{task.date}</span>
+                      {task.matchedRule && (
+                        <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded uppercase tracking-tighter">
+                          {task.matchedRule.keyword}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-xs font-black text-slate-800">{task.calculatedDuration} <span className="text-[10px] opacity-40">min</span></span>
+                  </div>
+                </div>
+              ))}
+              {selectedOwnerTasks.tasks.filter(t => t.name.toLowerCase().includes(taskSearch.toLowerCase())).length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-slate-400 font-bold">No tasks found matching "{taskSearch}"</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+              <div className="text-xs font-bold text-slate-500">
+                Total: <span className="text-indigo-600">{selectedOwnerTasks.totalHours.toFixed(1)} hrs</span>
+              </div>
+              <button 
+                onClick={() => { setSelectedOwnerTasks(null); setTaskSearch(''); }}
+                className="px-6 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-900 transition-all shadow-md active:scale-95"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
