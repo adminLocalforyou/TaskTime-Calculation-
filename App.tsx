@@ -195,12 +195,17 @@ const App: React.FC = () => {
     }
   };
 
-  const updateProjectCounts = (monthKey: string, owner: string, standardCount: number, aiCount: number) => {
+  const updateProjectCounts = (monthKey: string, owner: string, standardCount: number, aiCount: number, workingDays?: number) => {
     setProjectData(prev => ({
       ...prev,
       [monthKey]: {
         ...prev[monthKey],
-        [owner]: { standardCount, aiCount }
+        [owner]: { 
+          ...(prev[monthKey]?.[owner] || { standardCount: 0, aiCount: 0 }),
+          standardCount, 
+          aiCount,
+          workingDays: workingDays !== undefined ? workingDays : prev[monthKey]?.[owner]?.workingDays
+        }
       }
     }));
   };
@@ -254,10 +259,13 @@ const App: React.FC = () => {
       });
 
       const summaries: OwnerSummary[] = Object.entries(ownerGroups).map(([owner, ownerTasks]) => {
-        const divisor = calcMode === 'day' ? 1 : calcMode === 'week' ? WORKING_DAYS_PER_WEEK : WORKING_DAYS_MONTH;
+        const pInfo = projectData[monthKey]?.[owner] || { standardCount: 0, aiCount: 0 };
+        const defaultDivisor = calcMode === 'day' ? 1 : calcMode === 'week' ? WORKING_DAYS_PER_WEEK : WORKING_DAYS_MONTH;
+        const divisor = pInfo.workingDays || defaultDivisor;
+        
         const taskMinutes = ownerTasks.reduce((acc, curr) => acc + curr.calculatedDuration, 0);
         const taskDailyHours = (taskMinutes / 60) / divisor;
-        const pInfo = projectData[monthKey]?.[owner] || { standardCount: 0, aiCount: 0 };
+        
         // AI calculation is 8h
         const totalProjectHours = (pInfo.standardCount * 24) + (pInfo.aiCount * 8);
         const projectDailyImpact = totalProjectHours / divisor;
@@ -271,7 +279,8 @@ const App: React.FC = () => {
           projectDailyImpact,
           avgHoursPerDay: taskDailyHours + projectDailyImpact, 
           taskCount: ownerTasks.length, 
-          tasks: ownerTasks 
+          tasks: ownerTasks,
+          workingDays: divisor
         };
       });
 
@@ -477,7 +486,7 @@ const App: React.FC = () => {
             <Dashboard 
               result={analysisByMonth[selectedMonth]} 
               onCreateRule={(k) => { setPrefillRuleKeyword(k); setActiveTab('rules'); }}
-              onUpdateProject={(owner, standard, ai) => { updateProjectCounts(selectedMonth, owner, standard, ai); setProjectId(null); }}
+              onUpdateProject={(owner, standard, ai, days) => { updateProjectCounts(selectedMonth, owner, standard, ai, days); setProjectId(null); }}
               onUpdateTaskRule={handleUpdateTaskRule}
               calcMode={calcMode}
               onSetCalcMode={setCalcMode}

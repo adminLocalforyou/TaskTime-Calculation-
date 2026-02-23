@@ -9,7 +9,7 @@ import { AlertCircle, Clock, Users, UserPlus, HelpCircle, Plus, Download, Briefc
 interface DashboardProps {
   result: MonthlyAnalysis;
   onCreateRule?: (keyword: string) => void;
-  onUpdateProject?: (owner: string, standardCount: number, aiCount: number) => void;
+  onUpdateProject?: (owner: string, standardCount: number, aiCount: number, workingDays?: number) => void;
   onUpdateTaskRule?: (taskName: string, rule: any) => void;
   calcMode: CalculationMode;
   onSetCalcMode: (mode: CalculationMode) => void;
@@ -140,7 +140,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
               <p className="font-bold text-blue-700">AI Receptionist: 8h</p>
               <p className="text-xs">Ex: AI System Setup/Maintenance.</p>
             </div>
-            <p className="text-[10px] italic pt-2">* Impact is calculated by (Total Hours / 20 working days).</p>
+            <p className="text-[10px] italic pt-2">* Impact is calculated by (Total Hours / Working Days).</p>
           </div>
         </div>
       </div>
@@ -154,6 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Tasks</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Total Task Hrs</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Projects / Month</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Working Days</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Combined Avg (Hrs/Day)</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Status</th>
               </tr>
@@ -188,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                               type="number" 
                               min="0"
                               value={summary.standardProjectCount}
-                              onChange={(e) => onUpdateProject?.(summary.owner, parseInt(e.target.value) || 0, summary.aiProjectCount)}
+                              onChange={(e) => onUpdateProject?.(summary.owner, parseInt(e.target.value) || 0, summary.aiProjectCount, summary.workingDays)}
                               className="w-12 px-2 py-1 border border-slate-200 rounded-lg text-center text-xs font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                             />
                           </div>
@@ -200,11 +201,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ result, onCreateRule, onUp
                               type="number" 
                               min="0"
                               value={summary.aiProjectCount}
-                              onChange={(e) => onUpdateProject?.(summary.owner, summary.standardProjectCount, parseInt(e.target.value) || 0)}
+                              onChange={(e) => onUpdateProject?.(summary.owner, summary.standardProjectCount, parseInt(e.target.value) || 0, summary.workingDays)}
                               className="w-12 px-2 py-1 border border-blue-200 rounded-lg text-center text-xs font-bold focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                             />
                           </div>
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <input 
+                          type="number" 
+                          min="1"
+                          max={31}
+                          value={summary.workingDays}
+                          onChange={(e) => onUpdateProject?.(summary.owner, summary.standardProjectCount, summary.aiProjectCount, parseInt(e.target.value) || 1)}
+                          className="w-16 px-2 py-1.5 border border-slate-200 rounded-xl text-center text-sm font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                        />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Days</span>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center">

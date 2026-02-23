@@ -25,6 +25,7 @@ export type ProjectWeightType = 'standard' | 'ai';
 export interface ProjectEntry {
   standardCount: number;
   aiCount: number;
+  workingDays?: number;
 }
 
 export interface OwnerSummary {
@@ -37,6 +38,7 @@ export interface OwnerSummary {
   avgHoursPerDay: number; // Includes tasks + project impact
   taskCount: number;
   tasks: RawTask[];
+  workingDays: number;
 }
 
 export interface UnmatchedTaskInfo {
